@@ -1,4 +1,4 @@
-import { snakeCase } from "./snakeCase";
+import { snakeCase } from "../src/utils/snakeCase";
 
 type Case = { input: string, expected: string }
 

@@ -1,3 +1,5 @@
+/* Take a look at https://github.com/sequelize/sequelize/issues/13224 */
+
 export default function reverseSequelizeDefValueType(
   defaultValue,
   prefix = "Sequelize."

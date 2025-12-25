@@ -158,9 +158,7 @@ module.exports = {
 
   const filename = path.join(
     options.outDir,
-    `${
-      revisionNumber + (name !== "" ? `-${name.replace(/[\s-]/g, "_")}` : "")
-    }.js`
+    `${revisionNumber}-${name.replace(/[\s-]/g, "_")}.js`
   );
 
   fs.writeFileSync(filename, template);

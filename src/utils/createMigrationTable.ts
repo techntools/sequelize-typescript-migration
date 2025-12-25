@@ -18,6 +18,7 @@ export default async function createMigrationTable(sequelize: Sequelize) {
       defaultValue: Sequelize.fn("now"),
     },
   });
+
   await queryInterface.createTable("SequelizeMigrationsMeta", {
     revision: {
       type: SequelizeTypescriptDataType.INTEGER,

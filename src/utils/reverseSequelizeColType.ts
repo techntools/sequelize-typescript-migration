@@ -10,7 +10,17 @@ export default function reverseSequelizeColType(
   if (attrType.constructor.name === "CHAR") {
     if (!attrType.options) return `${prefix}CHAR`;
 
-    const postfix = attrType.options.binary ? ".BINARY" : "";
+    let postfix = ''
+
+    if (attrType.options.length)
+      postfix = `(${attrType.options.length})`
+    if (attrType.options.binary) {
+      if (!attrType.options.length) {
+        postfix = "()"
+      }
+
+      postfix += ".BINARY"
+    }
 
     return `${prefix}CHAR${postfix}`;
   }
@@ -33,7 +43,7 @@ export default function reverseSequelizeColType(
 
     const postfix = `('${attrType.options.length.toLowerCase()}')`;
 
-    return `${prefix}TEXT(${postfix})`;
+    return `${prefix}TEXT${postfix}`;
   }
 
   if (attrType.constructor.name === "DECIMAL") {
@@ -124,13 +134,12 @@ export default function reverseSequelizeColType(
 
   // RANGE ( PostgreSQL only )
   if (attrType.constructor.name === "RANGE") {
-    const innerType = reverseSequelizeColType(sequelize, attrType.type);
+    const innerType = reverseSequelizeColType(sequelize, attrType.options.subtype);
 
     return `${prefix}RANGE(${innerType})`;
   }
 
-  let seqType;
-  [
+  const seqTypes = [
     "BOOLEAN",
     "TIME",
     "HSTORE",
@@ -146,12 +155,11 @@ export default function reverseSequelizeColType(
     "INET",
     "MACADDR",
     "CITEXT",
-  ].forEach((typeName) => {
+  ]
+  for (const typeName of seqTypes) {
     if (attrType.constructor.name === typeName)
-      seqType = `${prefix}${typeName}`;
-  });
-
-  if (seqType) return seqType;
+      return `${prefix}${typeName}`;
+  }
 
   // not supported
   console.log(`not supported ...${attrType.constructor.name}`);

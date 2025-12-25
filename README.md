@@ -1,49 +1,33 @@
-# sequelize-typescript-migration-lts
+# sequelize-typescript-migration
 
-#### Idea: founded the best changes at each 27th fork from the main repository and merge them together.
+Based on work of [mandarvl](https://github.com/mandarvl) at [sequelize-typescript-migration](https://github.com/mandarvl/sequelize-typescript-migration).
 
-- Use it from [here](https://www.npmjs.com/package/sequelize-typescript-migration-lts) by the name of `sequelize-typescript-migration-lts`
-
-- Here is the [Github discussion](https://github.com/mmRoshani/sequelize-typescript-migration/discussions), any ideas/improves are very welcome.
-
-#### Tutorial
-
-[youtube video](https://www.youtube.com/embed/bBv75hssPKk)
-
-[![video](https://img.youtube.com/vi/bBv75hssPKk/0.jpg)](https://www.youtube.com/embed/bBv75hssPKk)
-
+Full credits to mmRoshani, mandarvl, kimjbstar, mricharz, syon-development, viinzzz and lou2013 for the awesome lib.
 
 #### Installation
 
-```js
-npm i sequelize-typescript-migration-lts
-// Or
-yarn add sequelize-typescript-migration-lts
-```
+```bash
+npm i @techntools/sequelize-typescript-migration
 
-Thanks kimjbstar, mricharz, syon-development, viinzzz and lou2013 for the awesome lib.
+// Or
+
+yarn add @techntools/sequelize-typescript-migration
+```
 
 ## General info
 
-It is based on [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript), not supports "sequelize" based model codes.
-and you need prior knowledge of migration of Sequelize.
+It is based on [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript) and does not support "sequelize" based model codes and you need prior knowledge of migration of Sequelize.
 
-[Sequelize Migration Manual](https://sequelize.org/master/manual/migrations.html)
+This scans models and its decorators to find changes, and generates migration code with this changes so don't need to write up, down function manually. This is like `makemigration` in django framework.
 
-This scans models and its decorators to find changes, and generates migration code with this changes so don't need to write up, down function manually. this is like "makemigration" in django framework.
+After generation is successful, you can use "migrate" in [Sequelize Migration Manual](https://sequelize.org/docs/v6/other-topics/migrations/)
 
-After generate successfully, you can use "migrate" in [Sequelize](https://sequelize.org/)
-[Sequelize Migration Manual](https://sequelize.org/master/manual/migrations.html)
+Sometimes, undo(down) action may not work, then you should modify manually. Maybe it's because of ordering of relations of models. That issue is currently in the works.
 
-**This refers to [GitHub - flexxnn/sequelize-auto-migrations: Migration generator && runner for sequelize](https://github.com/flexxnn/sequelize-auto-migrations) and its forks, and modified to typescript.**
+### Tested with
 
-Sometimes, undo(down) action may not work, then you should modify manually. Maybe it's because of ordering of relations of models.
-That issue is currently in the works.
-
-### Compatibility
-
-- Use version `~2.0.0` for `sequelize@~6.0.0`
-- Use version `~1.0.0` for `sequelize@~4.0.0`
+- sequelize@^6.37.7
+- sequelize-typescript@^2.1.6
 
 ## Usage Example
 
@@ -63,7 +47,7 @@ await SequelizeTypescriptMigration.makeMigration(sequelize, {
 });
 ```
 
-let's see example, if you have this two models and run first makeMigration, it detects all table change from nothing.
+If you have these two models and run first makeMigration, it detects all table changes from nothing.
 
 ```typescript
 @Table
@@ -101,7 +85,7 @@ export class Car extends Model<Car> {
 }
 ```
 
-then this code written to 00000001-noname.js in migrations path.
+This will generate 00000001-noname.js in migrations path.
 
 ```javascript
 "use strict";
@@ -250,7 +234,7 @@ module.exports = {
 };
 ```
 
-then you can apply this `npx sequelize db:migrate --to 00000001-noname.js`
+Run `npx sequelize db:migrate --to 00000001-noname.js` to apply this
 
 ## Possible Usage Scenario
 Make sure to have writeMigration in your System under development and that sequelize is all set up
@@ -258,18 +242,15 @@ Make sure to have writeMigration in your System under development and that seque
 If you change a model and re-run the backend there should be a new file under `db/migrations`, but the database won't update automatically. There are easy but important steps:
 
 1) Rename the file's name as well as the content (Info: name), so that everyone knows what this migration is about
-2) Migrate your database `sequelize db:migrate`
-3) Re-Serve the backend. You Should see 'No changes found'.
-4) Test the automatically created file's down function `sequelize db:migrate:undo`
+2) Migrate your database with `sequelize db:migrate`
+3) Re-Serve the backend. You should see no changes.
+4) Test the automatically created file's down function with `sequelize db:migrate:undo`
 5) If there are any troubles, fix the auto-generated file (ordering!)
 6) Run `sequelize db:migrate:undo` and continue your amazing work
 
-## Documentation
-
-Will be ready soon!
-
 ## Contributors
 
+- [Manda Ravalison](https://github.com/mandarvl)
 - [MohammadMojtaba Roshani](https://github.com/mmRoshani)
 - [Anthony Luzquiños](https://github.com/anthonylzq)
 - [Alexandr Cherednichenko](https://github.com/alexandr2110pro)

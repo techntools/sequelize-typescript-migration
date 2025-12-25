@@ -1,6 +1,6 @@
 import { existsSync } from "fs";
 import beautify from "js-beautify";
-import type { Model, ModelCtor } from "sequelize/types";
+import type { Model, ModelStatic } from "sequelize/types";
 import type { Sequelize } from "sequelize-typescript";
 
 import type { MigrationState } from "./constants";
@@ -13,9 +13,10 @@ import writeMigration from "./utils/writeMigration";
 
 export type IMigrationOptions = {
   /**
-   * directory where migration file saved. We recommend that you specify this path to sequelize migration path.
+   * directory where migration file saved. We recommend that you specify this
+   * path to sequelize migration path.
    */
-  outDir: string;
+  outDir?: string;
 
   /**
    * if true, it doesn't generate files but just prints result action.
@@ -33,12 +34,13 @@ export type IMigrationOptions = {
   comment?: string;
 
   debug?: boolean;
+  verbose?: boolean;
 } & ReverseModelsOptions
 
 export class SequelizeTypescriptMigration {
   /**
-   * generates migration file including up, down code
-   * after this, run 'npx sequelize-cli db:migrate'.
+   * generates migration file including up, down code after this, run 'npx sequelize-cli db:migrate'.
+   *
    * @param sequelize sequelize-typescript instance
    * @param options options
    */
@@ -48,18 +50,21 @@ export class SequelizeTypescriptMigration {
   ) => {
     options.preview = options.preview || false;
 
-    if (!existsSync(options.outDir))
-      return Promise.reject(
-        new Error(
-          `${options.outDir} not exists. check path and if you did 'npx sequelize init' you must use path used in sequelize migration path`
-        )
-      );
+    if (!options.preview) {
+      if (!options.outDir)
+          throw new Error(
+            `migrations directory is needed without preview`
+          )
+
+      if (!existsSync(options.outDir))
+          throw new Error(
+            `${options.outDir} does not exist. Check path and if you did 'npx sequelize init' you must use path used in sequelize migration path`
+          )
+    }
 
     await sequelize.authenticate();
 
-    const models: {
-      [key: string]: ModelCtor<Model>;
-    } = sequelize.models;
+    const models: { [key: string]: ModelStatic<Model> } = sequelize.models;
 
     const queryInterface = sequelize.getQueryInterface();
 
@@ -91,7 +96,7 @@ export class SequelizeTypescriptMigration {
     migration.commandsDown = tmp.commandsUp;
 
     if (migration.commandsUp.length === 0)
-      return Promise.resolve({ msg: "success: no changes found" });
+      return { noChangesFound: true, filename: null };
 
     // log
     migration.consoleOut.forEach((v) => {
@@ -106,7 +111,7 @@ export class SequelizeTypescriptMigration {
         beautify(`[ \n${migration.commandsDown.join(", \n")} \n];\n`)
       );
 
-      return Promise.resolve({ msg: "success without save" });
+      return { successWithoutSave: true, filename: null };
     }
 
     const info = await writeMigration(currentState, migration, options);
@@ -135,11 +140,11 @@ export class SequelizeTypescriptMigration {
         info.info.name
       }.js ${`--migrations-path=${options.outDir}`} `);
 
-      return await Promise.resolve({ msg: "success" });
+      return { success: true, filename: info.filename };
     } catch (err) {
       if (options.debug) console.error(err);
     }
 
-    return Promise.resolve({ msg: "success anyway..." });
+    return { successAnyway: true, filename: info.filename };
   };
 }

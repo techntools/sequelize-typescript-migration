@@ -22,7 +22,7 @@ export default function reverseModels(
   for (const [, model] of Object.entries(models)) {
     const attributes: {
       [key: string]: ModelAttributeColumnOptions;
-    } = model.rawAttributes;
+    } = model.getAttributes();
 
     const resultAttributes = {};
 
@@ -33,7 +33,7 @@ export default function reverseModels(
         const _val = reverseSequelizeDefValueType(attribute.defaultValue);
         if (_val.notSupported) {
           console.log(
-            `[Not supported] Skip defaultValue column of attribute ${model}:${column}`
+            `[Not supported] Skip defaultValue of column ${model}:${column}`
           );
         }
         rowAttribute.defaultValue = _val;
@@ -58,6 +58,7 @@ export default function reverseModels(
       }
 
       rowAttribute = {
+        ...rowAttribute,
         seqType,
       };
       [
@@ -73,6 +74,9 @@ export default function reverseModels(
         "onDelete",
         // "validate",
       ].forEach((key) => {
+        if (key == 'defaultValue' && rowAttribute[key] && rowAttribute[key]['internal'])
+          return
+
         if (attribute[key] !== undefined) rowAttribute[key] = attribute[key];
       });
 
@@ -85,11 +89,7 @@ export default function reverseModels(
     };
 
     const indexOut: { [x: string]: unknown } = {};
-    if (
-      model.options &&
-      model.options.indexes &&
-      model.options.indexes.length > 0
-    )
+    if (model.options && model.options.indexes)
       for (const _i in model.options.indexes) {
         const index = parseIndex(model.options.indexes[_i]);
         indexOut[`${index.hash}`] = index;

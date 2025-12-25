@@ -6,11 +6,9 @@ export default function parseIndex(idx: IndexesOptions) {
 
   [
     "name",
-    "type",
     "unique",
     "concurrently",
     "fields",
-    "using",
     "operator",
     "where",
   ].forEach((key) => {
@@ -19,27 +17,25 @@ export default function parseIndex(idx: IndexesOptions) {
 
   const options: { [x: string]: unknown } = {};
 
-  if (idx.name) options.indexName = idx.name;
-  // The name of the index. Default is __
+  [
+    "type",
+    "using",
+  ].forEach((key) => {
+    if (idx[key] !== undefined) options[key] = idx[key];
+  });
 
-  // @todo: UNIQUE|FULLTEXT|SPATIAL
+  // The name of the index. Default is __
+  if (idx.name) options.name = idx.name;
+
   if (idx.unique) options.type = "UNIQUE";
 
-  // Set a type for the index, e.g. BTREE. See the documentation of the used dialect
-  //   if (idx.method) {
-  //     options["indexType"] = idx.type;
-  //   }
-
-  if (idx.parser && idx.parser !== "") options.parser = idx.parser;
   // For FULLTEXT columns set your parser
+  if (idx.parser && idx.parser !== "") options.parser = idx.parser;
 
   result.options = options;
 
-  //   result["hash"] = hash(idx);
-  result.hash = crypto
-    .createHash("sha1")
-    .update(JSON.stringify(idx))
-    .digest("hex");
+  // result["hash"] = hash(idx);
+  result.hash = crypto.createHash("sha1").update(JSON.stringify(idx)).digest("hex");
 
   return result;
 }
