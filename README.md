@@ -4,7 +4,7 @@ Based on work of [mandarvl](https://github.com/mandarvl) at [sequelize-typescrip
 
 Full credits to mmRoshani, mandarvl, kimjbstar, mricharz, syon-development, viinzzz and lou2013 for the awesome lib.
 
-#### Installation
+## Installation
 
 ```bash
 npm i @techntools/sequelize-typescript-migration
@@ -24,7 +24,7 @@ After generation is successful, you can use "migrate" in [Sequelize Migration Ma
 
 Sometimes, undo(down) action may not work, then you should modify manually. Maybe it's because of ordering of relations of models. That issue is currently in the works.
 
-### Tested with
+## Tested with
 
 - sequelize@^6.37.7
 - sequelize-typescript@^2.1.6
@@ -237,7 +237,7 @@ module.exports = {
 Run `npx sequelize db:migrate --to 00000001-noname.js` to apply this
 
 ## Possible Usage Scenario
-Make sure to have writeMigration in your System under development and that sequelize is all set up
+Make sure to have writeMigration in your System under development and that sequelize is all set up.
 
 If you change a model and re-run the backend there should be a new file under `db/migrations`, but the database won't update automatically. There are easy but important steps:
 
