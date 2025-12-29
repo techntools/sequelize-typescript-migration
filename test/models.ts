@@ -356,3 +356,9 @@ export class PlaceWithParadise extends Model {
     coordinates: [number, number]; // [lng, lat]
   };
 }
+
+@Table
+export class SnakeCasedModel extends Model {
+  @Column
+  declare thisIsThat: string;
+}

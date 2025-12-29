@@ -1,6 +1,6 @@
 import { mkdir, rm } from 'fs/promises'
 
-import { Sequelize } from 'sequelize-typescript'
+import { Sequelize, type SequelizeOptions } from 'sequelize-typescript'
 
 // @ts-ignore module is js file instead of ts for the sequelize-cli
 import { TEST_MIGRATIONS_DIR, TEST_DATABASE } from './constant'
@@ -8,7 +8,7 @@ import { TEST_MIGRATIONS_DIR, TEST_DATABASE } from './constant'
 
 export let sequelize: Sequelize
 
-const options = {
+const options: SequelizeOptions = {
   username: 'santosh',
   password: 'Sant0sh',
 }

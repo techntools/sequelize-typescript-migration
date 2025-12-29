@@ -1,4 +1,6 @@
 import { join } from 'path'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 
 import { CarBrand, Car } from './models'
 import setup, { sequelize } from './setup'
@@ -110,6 +112,26 @@ describe('Migration options', function () {
       })
 
       expect(migration.filename).toMatch('mig_gamma_1')
+    })
+
+    it("columns are snake cased", async () => {
+      const { SnakeCasedModel } = await import('./models')
+
+      sequelize.addModels([SnakeCasedModel])
+
+      const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
+        outDir: TEST_MIGRATIONS_DIR,
+        migrationName: 'mig-adventure',
+        useSnakeCase: true
+      })
+
+      await promisify(exec)(`npx sequelize-cli db:migrate --debug --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+
+      const queryInterface = sequelize.getQueryInterface()
+      const desc = await queryInterface.describeTable('SnakeCasedModels')
+      expect(desc).toHaveProperty('this_is_that')
+      expect(desc).toHaveProperty('created_at')
+      expect(desc).toHaveProperty('updated_at')
     })
   })
 })
