@@ -99,17 +99,17 @@ export class SequelizeTypescriptMigration {
       return { noChangesFound: true, filename: null };
 
     // log
+    console.log();
     migration.consoleOut.forEach((v) => {
       console.log(`[Actions] ${v}`);
     });
 
     if (options.preview) {
-      console.log("Migration result:");
-      console.log(beautify(`[ \n${migration.commandsUp.join(", \n")} \n];\n`));
-      console.log("Undo commands:");
-      console.log(
-        beautify(`[ \n${migration.commandsDown.join(", \n")} \n];\n`)
-      );
+      console.log("\nMigration commands:\n");
+      console.log(beautify(`[${migration.commandsUp.join(",")}];`));
+
+      console.log("\nUndo commands:\n");
+      console.log(beautify(`[${migration.commandsDown.join(",")}];`));
 
       return { successWithoutSave: true, filename: null };
     }
@@ -117,7 +117,7 @@ export class SequelizeTypescriptMigration {
     const info = await writeMigration(currentState, migration, options);
 
     console.log(
-      `New migration to revision ${currentState.revision} has been saved to file '${info.filename}'`
+      `\nNew migration to revision ${currentState.revision} has been saved to file '${info.filename}'`
     );
 
     // save current state, Ugly hack, see https://github.com/sequelize/sequelize/issues/8310
@@ -130,15 +130,14 @@ export class SequelizeTypescriptMigration {
     ];
 
     try {
+      if (sequelize.options.logging) console.log()
+
       await queryInterface.bulkDelete("SequelizeMigrationsMeta", {
         revision: currentState.revision,
       });
       await queryInterface.bulkInsert("SequelizeMigrationsMeta", rows);
 
-      console.log(`Use sequelize CLI:
-  npx sequelize db:migrate --to ${info.revisionNumber}-${
-        info.info.name
-      }.js ${`--migrations-path=${options.outDir}`} `);
+      console.log(`\nUse sequelize CLI:\n\tnpx sequelize db:migrate --to ${info.revisionNumber}-${info.info.name}.js ${`--migrations-path=${options.outDir}`}`);
 
       return { success: true, filename: info.filename };
     } catch (err) {
