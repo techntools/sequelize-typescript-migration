@@ -7,11 +7,16 @@ node_modules/
 typings
 .tscache
 
+coverage/
 test/
+jest.config.js
 
 example/
 .gitignore
 .editorconfig
+
+.vimrc
+.vimspector.json
 
 npm-debug.log
 
