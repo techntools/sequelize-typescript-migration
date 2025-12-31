@@ -21,75 +21,94 @@ export default async function writeMigration(currentState, migration, options) {
   myState = myState.replace(searchRegExp, replaceWith);
 
   const versionCommands = `
+  {
+    fn: "createTable",
+    params: [
+      "SequelizeMigrationsMeta",
       {
-        fn: "createTable",
-        params: [
-          "SequelizeMigrationsMeta",
-          {
-            "revision": {
-              "primaryKey": true,
-              "type": Sequelize.INTEGER
-            },
-            "name": {
-              "allowNull": false,
-              "type": Sequelize.STRING
-            },
-            "state": {
-              "allowNull": false,
-              "type": Sequelize.JSON
-            },
-          },
-          {}
-        ]
+        "revision": {
+          "primaryKey": true,
+          "type": Sequelize.INTEGER
+        },
+        "name": {
+          "allowNull": false,
+          "type": Sequelize.STRING
+        },
+        "state": {
+          "allowNull": false,
+          "type": Sequelize.JSON
+        },
       },
-      {
-        fn: "bulkDelete",
-        params: [
-          "SequelizeMigrationsMeta",
-          [{
-            revision: info.revision
-          }],
-          {}
-        ]
-      },
-      {
-        fn: "bulkInsert",
-        params: [
-          "SequelizeMigrationsMeta",
-          [{
-            revision: info.revision,
-            name: info.name,
-            state: '${myState}'
-          }],
-          {}
-        ]
-      },
-    `;
+      {}
+    ]
+  },
+  {
+    fn: "bulkDelete",
+    params: [
+      "SequelizeMigrationsMeta",
+      [
+        {
+          revision: info.revision
+        }
+      ],
+      {}
+    ]
+  },
+  {
+    fn: "bulkInsert",
+    params: [
+      "SequelizeMigrationsMeta",
+      [
+        {
+          revision: info.revision,
+          name: info.name,
+          state: '${myState}'
+        }
+      ],
+      {}
+    ]
+  }`;
 
   const versionDownCommands = `
-    {
-      fn: "bulkDelete",
-      params: [
-        "SequelizeMigrationsMeta",
-        [{
-          revision: info.revision,
-        }],
-        {}
-      ]
-    },
-`;
+  {
+    fn: "bulkDelete",
+    params: [
+      "SequelizeMigrationsMeta",
+      [
+        {
+          revision: info.revision
+        }
+      ],
+      {}
+    ]
+  }
+  `;
 
-  let commands = `const migrationCommands = [\n${versionCommands}\n\n \n${migration.commandsUp.join(
-    ", \n"
-  )} \n];\n`;
-  let commandsDown = `const rollbackCommands = [\n${versionDownCommands}\n\n \n${migration.commandsDown.join(
-    ", \n"
-  )} \n];\n`;
+  const commands = `
+  const migrationCommands = [
+    /*
+     * Commands to manage revision
+     */
+    ${versionCommands},
+    /*
+     * Commands to manage database changes
+     */
+    ${migration.commandsUp.join(",\n")}
+  ];`.replace(/^\s*\n/gm, '');  // \s will match \r in windows style line-endings \r\n
+
+  const commandsDown = `
+  const rollbackCommands = [
+    /*
+     * Command to rollback revision
+     */
+    ${versionDownCommands},
+    /*
+     * Commands to rollback database changes
+     */
+    ${migration.commandsDown.join(",\n")}
+  ];`.replace(/^\s*\n/gm, '');  // \s will match \r in windows style line-endings \r\n
 
   const actions = ` * ${migration.consoleOut.join("\n * ")}`;
-
-  commands = beautify(commands);
-  commandsDown = beautify(commandsDown);
 
   const info = {
     revision: currentState.revision,
@@ -98,61 +117,66 @@ export default async function writeMigration(currentState, migration, options) {
     comment,
   };
 
-  const template = `'use strict';
+  const template = beautify(
+    `
+    'use strict';
 
-const Sequelize = require('sequelize');
+    const Sequelize = require('sequelize');
 
-/**
- * Actions summary:
- *
-${actions}
- *
- **/
+    /**
+      * Actions summary:
+      *
+      ${actions}
+      *
+      **/
 
-const info = ${JSON.stringify(info, null, 4)};
+    const info = ${JSON.stringify(info, null, 4)};
 
-${commands}
+    ${commands}
 
-${commandsDown}
+    ${commandsDown}
 
-module.exports = {
-  pos: 0,
-  up: function(queryInterface, Sequelize) {
-    let index = this.pos;
+    module.exports = {
+      pos: 0,
+      up: function(queryInterface, Sequelize) {
+        let index = this.pos;
 
-    return new Promise(function(resolve, reject) {
-      function next() {
-        if (index < migrationCommands.length) {
-          let command = migrationCommands[index];
-          console.log("[#"+index+"] execute: " + command.fn);
-          index++;
-          queryInterface[command.fn].apply(queryInterface, command.params).then(next, reject);
-        } else resolve();
-      }
+        return new Promise(function(resolve, reject) {
+          function next() {
+            if (index < migrationCommands.length) {
+              const command = migrationCommands[index];
+              index++;
+              queryInterface[command.fn].apply(queryInterface, command.params).then(next, reject);
 
-      next();
-    });
-  },
-  down: function(queryInterface, Sequelize) {
-    let index = this.pos;
+              console.log("[#"+index+"] execute: " + command.fn);
+            } else resolve();
+          }
 
-    return new Promise(function(resolve, reject) {
-      function next() {
-        if (index < rollbackCommands.length) {
-          let command = rollbackCommands[index];
-          console.log("[#"+index+"] execute: " + command.fn);
-          index++;
-          queryInterface[command.fn].apply(queryInterface, command.params).then(next, reject);
-        }
-        else resolve();
-      }
+          next();
+        });
+      },
+      down: function(queryInterface, Sequelize) {
+        let index = this.pos;
 
-      next();
-    });
-  },
-  info
-};
-`;
+        return new Promise(function(resolve, reject) {
+          function next() {
+            if (index < rollbackCommands.length) {
+              const command = rollbackCommands[index];
+              index++;
+              queryInterface[command.fn].apply(queryInterface, command.params).then(next, reject);
+
+              console.log("[#"+index+"] execute: " + command.fn);
+            }
+            else resolve();
+          }
+
+          next();
+        });
+      },
+      info
+    };`,
+    { indent_size: 2 }
+  );
 
   const revisionNumber = currentState.revision.toString().padStart(8, "0");
 
