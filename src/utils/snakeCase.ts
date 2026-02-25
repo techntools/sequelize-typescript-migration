@@ -1,6 +1,7 @@
 export const snakeCase = (camelCase: string): string => {
-  // TODO: maybe we can simplify it
   return camelCase
+    // split words by all capital and capital followed by lower letters
+    .replace(/([A-Z]+)([A-Z][a-z]+)/g, "$1_$2")
     // split words by capital letters
     .replace(/([A-Z]+)/g, (match) => `_${match.toLowerCase()}`)
     // split multi-digit numbers
