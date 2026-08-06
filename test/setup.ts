@@ -1,82 +1,84 @@
 import { mkdir, rm } from 'fs/promises'
 
-import { Sequelize, type SequelizeOptions } from 'sequelize-typescript'
+import { Sequelize, ModelCtor } from 'sequelize-typescript'
+
+import randomName from '@scaleway/random-name'
 
 // @ts-ignore module is js file instead of ts for the sequelize-cli
-import { TEST_MIGRATIONS_DIR, TEST_DATABASE } from './constant'
+import { TEST_MIGRATIONS_DIR } from './constant'
+
+import config from './config'
 
 
-export let sequelize: Sequelize
+const databases: Sequelize[] = []
 
-const options: SequelizeOptions = {
-  username: 'santosh',
-  password: 'Sant0sh',
-}
 
-export async function init(dialect: string) {
+export async function setupDatabase(dialect: string, models?: ModelCtor[]) {
+  let sequelize: Sequelize
+
+  const database = randomName('db', '_')
+
   if (dialect == 'mysql') {
-    sequelize = new Sequelize({ ...options, dialect })
-    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${TEST_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    await sequelize.query(`USE ${TEST_DATABASE}`);
-  } else if (dialect == 'postgres') {
-    sequelize = new Sequelize({ ...options, dialect, database: 'postgres' })
-    await sequelize.query(`CREATE DATABASE ${TEST_DATABASE}`);
+    sequelize = new Sequelize({ ...config.mysql, database: undefined, dialect })
+
+    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+    await sequelize.query(`USE ${database}`)
     await sequelize.close()
-    sequelize = new Sequelize({ ...options, dialect, database: TEST_DATABASE })
+
+    sequelize = new Sequelize({ ...config.mysql, database, dialect })
+  }
+
+  if (dialect == 'postgres') {
+    sequelize = new Sequelize({ ...config.postgres, dialect, database: 'postgres' })
+    await sequelize.query(`CREATE DATABASE ${database}`)
+    await sequelize.close()
+
+    sequelize = new Sequelize({ ...config.postgres, dialect, database })
+
     /*
      * Note that enabling extension is specific to a particular database that
      * you are using. It is not installation-wide.
      */
-    await sequelize.query(`CREATE EXTENSION IF NOT EXISTS postgis`);
+    await sequelize.query(`CREATE EXTENSION IF NOT EXISTS postgis`)
     await sequelize.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
   }
 
-  try {
-    await mkdir(TEST_MIGRATIONS_DIR)
-  } catch(err: any) {
-    if (err && err['code'] !== 'EEXIST')
-      throw err
-  }
+  databases.push(sequelize!)
 
-  return sequelize
+  if (models)
+    sequelize!.addModels(models)
+
+  return { sequelize: sequelize!, database }
 }
 
-export async function cleanup() {
-  try {
-    const dialect = sequelize.getDialect()
+export async function cleanupDatabases(dialect: string) {
+  let sequelize: Sequelize
 
-    if (dialect == 'postgres') {
-      await sequelize.close()
-      sequelize = new Sequelize({ ...options, dialect, database: 'postgres' })
-    }
-
-    if (['postgres', 'mysql', 'mariadb'].includes(dialect))
-      await sequelize.query(`DROP DATABASE IF EXISTS ${TEST_DATABASE}`)
-
-    await sequelize.close()
-  } catch(err) {
-    console.error(err)
+  if (dialect == 'mysql') {
+    sequelize = new Sequelize({ ...config.mysql, database: undefined, dialect })
   }
 
+  if (dialect == 'postgres') {
+    sequelize = new Sequelize({ ...config.postgres, dialect, database: 'postgres' })
+  }
+
+  await Promise.all(databases.map(async (seq) => {
+    await seq.close()
+    await sequelize.query(`DROP DATABASE IF EXISTS ${seq.config.database}`)
+  }))
+
+  await sequelize!.close()
+}
+
+let logSpy: jest.SpyInstance
+
+export async function groupBeforeAll() {
+  logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+  try { await mkdir(TEST_MIGRATIONS_DIR) } catch(err) {}
+}
+
+export async function groupAfterAll(dialect: string) {
+  logSpy.mockRestore()
+  await cleanupDatabases(dialect)
   await rm(TEST_MIGRATIONS_DIR, { recursive: true })
-}
-
-export default function(options: { dialect: string }) {
-  let logSpy: jest.SpyInstance
-
-  beforeAll(async () => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
-  })
-
-  afterAll(async () => {
-    logSpy.mockRestore()
-  })
-
-  beforeEach(async () => {
-    sequelize = await init(options.dialect)
-  })
-
-  afterEach(async () => {
-    await cleanup()
-  })
 }

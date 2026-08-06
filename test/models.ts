@@ -21,6 +21,7 @@ import {
 })
 export class CarBrand extends Model {
   @Column({
+    type: DataType.STRING,
     unique: 'carBrandName'
   })
   declare name: string;
@@ -29,16 +30,16 @@ export class CarBrand extends Model {
   @Column(DataType.BOOLEAN)
   declare isCertified: boolean;
 
-  @Column
+  @Column(DataType.STRING)
   declare imgUrl: string;
 
-  @Column
+  @Column(DataType.INTEGER)
   declare regNo: number;
 
-  @Column
+  @Column(DataType.INTEGER)
   declare orderNo: number;
 
-  @Column
+  @Column(DataType.INTEGER)
   declare carsCount: number;
 }
 
@@ -52,7 +53,7 @@ export class CarBrand extends Model {
   ]
 })
 export class CarBrandWithUniqueImg extends CarBrand {
-  @Column
+  @Column(DataType.STRING)
   declare imgUrl: string;
 }
 
@@ -65,18 +66,19 @@ export class CarBrandWithStringOrderNumber extends CarBrand {
 
 @Table
 export class Owner extends Model {
-  @Column
+  @Column(DataType.STRING)
   declare name: string;
 }
 
 @Table
 export class OwnerWithStyle extends Model {
-  @Column
+  @Column(DataType.STRING)
   declare name: string;
 }
 
 export class CarBrandWithOwnerId extends CarBrand {
   @Column({
+    type: DataType.INTEGER,
     unique: true
   })
   declare ownerId: number;
@@ -87,7 +89,7 @@ export class CarBrandWithOwnerId extends CarBrand {
 })
 export class CarBrandWithOwnerReference extends CarBrand {
   @ForeignKey(() => Owner)
-  @Column
+  @Column(DataType.INTEGER)
   declare ownerId: number;
 
   @BelongsTo(() => Owner)
@@ -100,6 +102,7 @@ export class CarBrandWithOwnerReference extends CarBrand {
 export class CarBrandWithNonNullOwnerReference extends CarBrand {
   @ForeignKey(() => Owner)
   @Column({
+    type: DataType.INTEGER,
     allowNull: false
   })
   declare ownerId: number;
@@ -113,7 +116,7 @@ export class CarBrandWithNonNullOwnerReference extends CarBrand {
 })
 export class CarBrandWithStylishOwnerReference extends CarBrand {
   @ForeignKey(() => OwnerWithStyle)
-  @Column
+  @Column(DataType.INTEGER)
   declare ownerId: number;
 
   @BelongsTo(() => OwnerWithStyle)
@@ -124,7 +127,7 @@ export class CarBrandWithStylishOwnerReference extends CarBrand {
   tableName: 'CarBrands'
 })
 export class CarBrandWithEmail extends CarBrand {
-  @Column
+  @Column(DataType.STRING)
   declare email: string;
 }
 
@@ -133,6 +136,7 @@ export class CarBrandWithEmail extends CarBrand {
 })
 export class CarBrandWithUniqueEmail extends CarBrand {
   @Column({
+    type: DataType.STRING,
     unique: true
   })
   declare email: string;
@@ -143,6 +147,7 @@ export class CarBrandWithUniqueEmail extends CarBrand {
 })
 export class CarBrandWithRequiredRegNo extends CarBrand {
   @Column({
+    type: DataType.INTEGER,
     allowNull: false
   })
   declare regNo: number;
@@ -160,17 +165,17 @@ export class CarBrandIsCertifiedDefaultRemoved extends CarBrand {
   tableName: 'CarBrands'
 })
 export class CarBrandWithoutModification extends CarBrand {
-  @Column
+  @Column(DataType.INTEGER)
   declare carsCount: number;
 }
 
 @Table
 export class Car extends Model {
-  @Column
+  @Column(DataType.STRING)
   declare name: string;
 
   @ForeignKey(() => CarBrand)
-  @Column
+  @Column(DataType.INTEGER)
   declare carBrandId: number;
 
   @BelongsTo(() => CarBrand)
@@ -205,7 +210,7 @@ export class Car extends Model {
   ]
 })
 export class CarWithStory extends Model {
-  @Column
+  @Column(DataType.STRING)
   declare name: string;
 
   @Column({
@@ -231,40 +236,47 @@ export class CarWithSparePart extends Car {
 @Table
 export class Contact extends Model {
   @Column({
+    type: DataType.INTEGER,
     primaryKey: true,
     autoIncrement: true,
   })
   declare id: number;
 
   @Column({
+    type: DataType.STRING,
     allowNull: false
   })
   declare name: string;
 
   @Column({
+    type: DataType.STRING,
     allowNull: true,
     unique: true
   })
   declare phone: string;
 
   @Column({
+    type: DataType.STRING,
     allowNull: true,
     unique: true
   })
   declare email: string;
 
   @Column({
+    type: DataType.BOOLEAN,
     allowNull: false
   })
   declare isActive: boolean;
 
   @Column({
+    type: DataType.INTEGER,
     allowNull: false,
     defaultValue: 1
   })
   declare points: number;
 
   @Column({
+    type: DataType.BOOLEAN,
     allowNull: false,
     defaultValue: false
   })
@@ -359,6 +371,6 @@ export class PlaceWithParadise extends Model {
 
 @Table
 export class SnakeCasedModel extends Model {
-  @Column
+  @Column(DataType.STRING)
   declare thisIsThat: string;
 }

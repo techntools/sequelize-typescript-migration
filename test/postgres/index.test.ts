@@ -3,8 +3,10 @@ import { constants } from 'fs';
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
+import config from '../config'
+
 import { CarBrand, Car } from '../models'
-import setup, { sequelize } from '../setup'
+import { setupDatabase, groupAfterAll, groupBeforeAll } from '../setup'
 
 // @ts-ignore module is js file instead of ts for the sequelize-cli
 import { TEST_MIGRATIONS_DIR } from '../constant'
@@ -13,16 +15,31 @@ import { SequelizeTypescriptMigration } from '../../src/index'
 
 
 describe("Postgres Migrations", function () {
-  setup({ dialect: 'postgres' })
+  const dialect = 'postgres'
+
+  const setupDB = setupDatabase.bind(null, dialect)
+
+  beforeAll(async () => {
+    await groupBeforeAll()
+  })
+
+  afterAll(async () => {
+    await groupAfterAll(dialect)
+  })
+
+  function migrationCommand(database: string, migration: Record<string, any>) {
+    const { username, password, host, port } = config.postgres
+    return `npx sequelize-cli db:migrate --env testing --url ${dialect}://${username}:${password}@${host}:${port}/${database} --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`
+  }
 
   it("noname migration executes successfully", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     await expect(queryInterface.describeTable('CarBrands')).resolves.toBeDefined()
@@ -30,14 +47,14 @@ describe("Postgres Migrations", function () {
   })
 
   it("migration without changes", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-gold',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithoutModification } = await import('../models')
 
@@ -52,7 +69,7 @@ describe("Postgres Migrations", function () {
   })
 
   it("migration preview is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize } = await setupDB([CarBrand, Car])
 
     await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
@@ -64,14 +81,14 @@ describe("Postgres Migrations", function () {
   it("new and only column migration executes successfully", async () => {
     const { CarBrandWithEmail } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithEmail, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithEmail, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-y',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('CarBrands')
     expect(desc).toHaveProperty('email')
@@ -80,14 +97,14 @@ describe("Postgres Migrations", function () {
   it("column has new attribute", async () => {
     const { CarBrandWithRequiredRegNo } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithRequiredRegNo, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithRequiredRegNo, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-galaxy',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -97,14 +114,14 @@ describe("Postgres Migrations", function () {
   it("new column has unique constraint", async () => {
     const { CarBrandWithUniqueEmail } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithUniqueEmail, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithUniqueEmail, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-z',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     const indexes = await queryInterface.showIndex('CarBrands')
@@ -119,14 +136,14 @@ describe("Postgres Migrations", function () {
   it("attribute is promoted to a foreign key reference", async () => {
     const { CarBrandWithOwnerId } = await import('../models')
 
-    sequelize.addModels([CarBrandWithOwnerId, Car])
+    const { sequelize, database } = await setupDB([CarBrandWithOwnerId, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-jupiter',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithOwnerReference, Owner } = await import('../models')
 
@@ -137,7 +154,7 @@ describe("Postgres Migrations", function () {
       migrationName: 'mig-jupiter',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const res = await sequelize.query(
       `
@@ -168,14 +185,14 @@ describe("Postgres Migrations", function () {
   })
 
   it("column attribute drop is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-andromeda',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const descBefore = await sequelize.getQueryInterface().describeTable('CarBrands')
     expect(descBefore['isCertified']['defaultValue']).toBe(true)
@@ -189,7 +206,7 @@ describe("Postgres Migrations", function () {
       migrationName: 'mig-andromeda',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const desc = await sequelize.getQueryInterface().describeTable('CarBrands')
     expect(desc['isCertified']['defaultValue']).toBeNull()
@@ -198,14 +215,14 @@ describe("Postgres Migrations", function () {
   it("column has default value", async () => {
     const { Contact, TestDefaultValueWithFn } = await import(`../models`)
 
-    sequelize.addModels([Contact, TestDefaultValueWithFn]);
+    const { sequelize, database } = await setupDB([Contact, TestDefaultValueWithFn])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-alpha',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('Contacts')
     expect(desc['isVerified']['defaultValue']).toEqual(false)
@@ -218,14 +235,14 @@ describe("Postgres Migrations", function () {
   it("column has internal default value", async () => {
     const { TestDefaultValue } = await import(`../models`)
 
-    sequelize.addModels([TestDefaultValue]);
+    const { sequelize, database } = await setupDB([TestDefaultValue])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-elephant',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('TestDefaultValues')
     expect(desc['fieldNOW']['defaultValue']).toBeNull()
@@ -236,28 +253,28 @@ describe("Postgres Migrations", function () {
   it("column is char of fixed length", async () => {
     const { Squad } = await import(`../models`)
 
-    sequelize.addModels([Squad]);
+    const { sequelize, database } = await setupDB([Squad])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-beta',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('Squads')
     expect(desc['badge']['type']).toEqual('CHARACTER(2)')
   })
 
   it("new column type migration is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-city',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithStringOrderNumber } = await import(`../models`)
 
@@ -268,7 +285,7 @@ describe("Postgres Migrations", function () {
       migrationName: 'mig-city',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -276,14 +293,14 @@ describe("Postgres Migrations", function () {
   })
 
   it("new foreign key reference migration is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-jungle',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithOwnerReference, Owner } = await import('../models')
 
@@ -294,7 +311,7 @@ describe("Postgres Migrations", function () {
       migrationName: 'mig-jungle',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -302,14 +319,14 @@ describe("Postgres Migrations", function () {
   })
 
   it("adding new index is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-atlas',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithUniqueImg } = await import('../models')
 
@@ -320,7 +337,7 @@ describe("Postgres Migrations", function () {
       migrationName: 'mig-atlas',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -328,7 +345,7 @@ describe("Postgres Migrations", function () {
   })
 
   it("make migrations multiple times", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize } = await setupDB([CarBrand, Car])
 
     await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
@@ -351,14 +368,14 @@ describe("Postgres Migrations", function () {
   it("array and range", async () => {
     const { CarWithSparePart } = await import('../models')
 
-    sequelize.addModels([CarBrand, CarWithSparePart])
+    const { sequelize, database } = await setupDB([CarBrand, CarWithSparePart])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-tundra',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
 
@@ -370,14 +387,14 @@ describe("Postgres Migrations", function () {
   it("geometry and geography", async () => {
     const { PlaceWithParadise } = await import('../models')
 
-    sequelize.addModels([PlaceWithParadise])
+    const { sequelize, database } = await setupDB([PlaceWithParadise])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-alaska',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
 

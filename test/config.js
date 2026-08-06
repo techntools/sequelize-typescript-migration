@@ -2,20 +2,22 @@ const { TEST_DATABASE } = require('./constant')
 
 module.exports = {
 
-  // test_{dialect} needed to pass to sequelize-cli
-
-  test_mysql: {
+  mysql: {
     username: 'santosh',
     password: 'Sant0sh',
     database: TEST_DATABASE,
-    dialect: 'mysql'
+    dialect: 'mysql',
+    host: 'localhost',
+    port: 3306
   },
 
-  test_postgres: {
+  postgres: {
     username: 'santosh',
     password: 'Sant0sh',
     database: TEST_DATABASE,
-    dialect: 'postgres'
+    dialect: 'postgres',
+    host: 'localhost',
+    port: 5432
   },
 
 }

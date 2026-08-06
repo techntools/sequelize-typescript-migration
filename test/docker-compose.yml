@@ -1,7 +1,7 @@
 services:
   mysql:
-    image: mysql/mysql-server:latest
-    container_name: mysql-sequelize-typescript-migrations
+    image: mysql/mysql-server:8.0
+    container_name: sequelize-typescript-migrations-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: R001
@@ -11,9 +11,10 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+
   postgis:
     image: postgis/postgis:16-3.4
-    container_name: postgis
+    container_name: sequelize-typescript-migrations-postgis
     restart: always
     environment:
       POSTGRES_USER: santosh

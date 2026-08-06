@@ -3,26 +3,42 @@ import { constants } from 'fs';
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
-import { CarBrand, Car } from '../models'
-import setup, { sequelize } from '../setup'
+import config from '../config'
 
-// @ts-ignore module is js file instead of ts for the sequelize-cli
-import { TEST_MIGRATIONS_DIR, TEST_DATABASE } from '../constant'
+import { CarBrand, Car } from '../models'
+import { setupDatabase, groupAfterAll, groupBeforeAll } from '../setup'
+
+import { TEST_MIGRATIONS_DIR } from '../constant'
 
 import { SequelizeTypescriptMigration } from '../../src/index'
 
 
 describe("Mysql Migrations", function () {
-  setup({ dialect: 'mysql' })
+  const dialect = 'mysql'
+
+  const setupDB = setupDatabase.bind(null, dialect)
+
+  beforeAll(async () => {
+    await groupBeforeAll()
+  })
+
+  afterAll(async () => {
+    await groupAfterAll(dialect)
+  })
+
+  function migrationCommand(database: string, migration: Record<string, any>) {
+    const { username, password, host, port } = config.mysql
+    return `npx sequelize-cli db:migrate --env testing --url ${dialect}://${username}:${password}@${host}:${port}/${database} --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`
+  }
 
   it("noname migration executes successfully", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     await expect(queryInterface.describeTable('CarBrands')).resolves.toBeDefined()
@@ -30,14 +46,14 @@ describe("Mysql Migrations", function () {
   })
 
   it("migration without changes", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-gold',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithoutModification } = await import('../models')
 
@@ -52,7 +68,7 @@ describe("Mysql Migrations", function () {
   })
 
   it("migration preview is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize } = await setupDB([CarBrand, Car])
 
     await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
@@ -64,14 +80,14 @@ describe("Mysql Migrations", function () {
   it("new and only column migration is successful", async () => {
     const { CarBrandWithEmail } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithEmail, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithEmail, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'migY',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('CarBrands')
     expect(desc).toHaveProperty('email')
@@ -80,14 +96,14 @@ describe("Mysql Migrations", function () {
   it("column has new attribute", async () => {
     const { CarBrandWithRequiredRegNo } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithRequiredRegNo, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithRequiredRegNo, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-galaxy',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -97,14 +113,14 @@ describe("Mysql Migrations", function () {
   it("new column has unique constraint", async () => {
     const { CarBrandWithUniqueEmail } = await import(`../models`)
 
-    sequelize.addModels([CarBrand, CarBrandWithUniqueEmail, Car]);
+    const { sequelize, database } = await setupDB([CarBrand, CarBrandWithUniqueEmail, Car])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'migZ',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const [results, _] = await sequelize.query("SHOW INDEXES FROM CarBrands WHERE Column_name = 'email';");
     if (results.length)
@@ -112,14 +128,14 @@ describe("Mysql Migrations", function () {
   })
 
   it("column attribute drop is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-andromeda',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandIsCertifiedDefaultRemoved } = await import(`../models`)
 
@@ -130,7 +146,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-andromeda',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const desc = await sequelize.getQueryInterface().describeTable('CarBrands')
     expect(desc['isCertified']['defaultValue']).toBeNull()
@@ -139,14 +155,14 @@ describe("Mysql Migrations", function () {
   it("column has default value", async () => {
     const { Contact } = await import(`../models`)
 
-    sequelize.addModels([Contact]);
+    const { sequelize, database } = await setupDB([Contact])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-alpha',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('Contacts')
     expect(desc['isVerified']['defaultValue']).toEqual("0")
@@ -156,14 +172,14 @@ describe("Mysql Migrations", function () {
   it("column has internal default value", async () => {
     const { TestDefaultValue } = await import(`../models`)
 
-    sequelize.addModels([TestDefaultValue]);
+    const { sequelize, database } = await setupDB([TestDefaultValue])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-elephant',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('TestDefaultValues')
     expect(desc['fieldDefaultByFn']['defaultValue']).toBeNull()
@@ -175,28 +191,28 @@ describe("Mysql Migrations", function () {
   it("column is char of fixed length", async () => {
     const { Squad } = await import(`../models`)
 
-    sequelize.addModels([Squad]);
+    const { sequelize, database } = await setupDB([Squad])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-beta',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const desc = await sequelize.getQueryInterface().describeTable('Squads')
     expect(desc['badge']['type']).toEqual('CHAR(2)')
   })
 
   it("new column type migration is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-city',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithStringOrderNumber } = await import(`../models`)
 
@@ -207,7 +223,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-city',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -217,14 +233,14 @@ describe("Mysql Migrations", function () {
   it("attribute is promoted to a foreign key reference", async () => {
     const { CarBrandWithOwnerId } = await import('../models')
 
-    sequelize.addModels([CarBrandWithOwnerId, Car])
+    const { sequelize, database } = await setupDB([CarBrandWithOwnerId, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-jupiter',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithOwnerReference, Owner } = await import('../models')
 
@@ -235,7 +251,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-jupiter',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const res = await sequelize.query(
       `
@@ -244,7 +260,7 @@ describe("Mysql Migrations", function () {
       FROM
         INFORMATION_SCHEMA.KEY_COLUMN_USAGE
       WHERE
-        REFERENCED_TABLE_SCHEMA = '${TEST_DATABASE}' AND
+        REFERENCED_TABLE_SCHEMA = '${database}' AND
         REFERENCED_TABLE_NAME = 'Owners'
       `
     )
@@ -260,14 +276,14 @@ describe("Mysql Migrations", function () {
   })
 
   it("new foreign key reference migration is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-jungle',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithOwnerReference, Owner } = await import('../models')
 
@@ -278,7 +294,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-jungle',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -288,14 +304,14 @@ describe("Mysql Migrations", function () {
   it("foreign key references new table", async () => {
     const { CarBrandWithOwnerReference, Owner } = await import('../models')
 
-    sequelize.addModels([CarBrandWithOwnerReference, Owner])
+    const { sequelize, database } = await setupDB([CarBrandWithOwnerReference, Owner])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-tribe',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithStylishOwnerReference, OwnerWithStyle } = await import('../models')
 
@@ -306,7 +322,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-tribe',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -314,14 +330,14 @@ describe("Mysql Migrations", function () {
   })
 
   it("adding new index is successful", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize, database } = await setupDB([CarBrand, Car])
 
     const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-atlas',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, fm))
 
     const { CarBrandWithUniqueImg } = await import('../models')
 
@@ -332,7 +348,7 @@ describe("Mysql Migrations", function () {
       migrationName: 'mig-atlas',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${sm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, sm))
 
     const queryInterface = sequelize.getQueryInterface()
     const desc = await queryInterface.describeTable('CarBrands')
@@ -343,7 +359,7 @@ describe("Mysql Migrations", function () {
    * Test to cover some lines in removeCurrentRevisionMigrations.ts
    */
   it("make migrations multiple times", async () => {
-    sequelize.addModels([CarBrand, Car])
+    const { sequelize } = await setupDB([CarBrand, Car])
 
     await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
@@ -367,14 +383,14 @@ describe("Mysql Migrations", function () {
   it("geometry and geography", async () => {
     const { Place } = await import('../models')
 
-    sequelize.addModels([Place])
+    const { sequelize, database } = await setupDB([Place])
 
     const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-tundra',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --env test_${sequelize.getDialect()} --config test/config.js --to ${migration.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
 
@@ -395,14 +411,14 @@ describe("Mysql Migrations", function () {
   it("adding full text index is successful", async () => {
     const { CarWithStory } = await import('../models')
 
-    sequelize.addModels([CarWithStory])
+    const { sequelize, database } = await setupDB([CarWithStory])
 
-    const fm = await SequelizeTypescriptMigration.makeMigration(sequelize, {
+    const migration = await SequelizeTypescriptMigration.makeMigration(sequelize, {
       outDir: TEST_MIGRATIONS_DIR,
       migrationName: 'mig-gigantic',
     })
 
-    await promisify(exec)(`npx sequelize-cli db:migrate --debug --env test_${sequelize.getDialect()} --config test/config.js --to ${fm.filename!.split('/').reverse()[0]} --migrations-path=${TEST_MIGRATIONS_DIR}`)
+    await promisify(exec)(migrationCommand(database, migration))
 
     const queryInterface = sequelize.getQueryInterface()
     const indexes = await queryInterface.showIndex('CarWithStories')
