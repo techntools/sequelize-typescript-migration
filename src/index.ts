@@ -46,7 +46,7 @@ export class SequelizeTypescriptMigration {
    */
   public static makeMigration = async (
     sequelize: Sequelize,
-    options: IMigrationOptions
+    options: IMigrationOptions = {}
   ) => {
     options.preview = options.preview || false;
 
