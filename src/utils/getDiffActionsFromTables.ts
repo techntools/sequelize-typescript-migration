@@ -40,7 +40,14 @@ export default function getDiffActionsFromTables(
         const tableName = df.rhs.tableName as string;
 
         Object.values(df.rhs.schema).forEach((v: any) => {
-          if (v.references) depends.push(v.references.model as string);
+          if (v.references) {
+            if (typeof v.references.model !== "string")
+              throw new Error(
+                `Foreign key on "${tableName}" is missing references.model (got ${JSON.stringify(v.references)})`
+              );
+
+            depends.push(v.references.model as string);
+          }
         });
 
         actions.push({
