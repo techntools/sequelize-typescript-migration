@@ -1,6 +1,6 @@
-const { TEST_DATABASE } = require('./constant')
+import { TEST_DATABASE } from './constant'
 
-module.exports = {
+export = {
 
   mysql: {
     username: 'santosh',
