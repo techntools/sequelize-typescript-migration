@@ -1,6 +1,6 @@
 {
   "name": "@techntools/sequelize-typescript-migration",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Migration tool for Sequelize & TypeScript users",
   "keywords": [
     "sequelize",
