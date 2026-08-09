@@ -131,10 +131,25 @@ export default function getDiffActionsFromTables(
 
       // drop table
       if (df.path.length === 1) {
+        // depends lists tables that reference THIS table in the previous state.
+        // Child tables (who point at us) must be dropped first, so this entry
+        // should be ordered after every child still present in
+        // previousStateTables. The previousStateTables argument is the full
+        // state on the "left" side of the diff, i.e. the state where the
+        // dropped table still exists.
         const depends: string[] = [];
-        Object.values(df.lhs.schema).forEach((v: any) => {
-          if (v.references) depends.push(v.references.model);
-        });
+        for (const [otherTableName, otherTable] of Object.entries(
+          previousStateTables as Record<string, any>
+        )) {
+          if (otherTableName === tableName) continue;
+          if (!otherTable || !otherTable.schema) continue;
+          for (const col of Object.values(otherTable.schema as Record<string, any>)) {
+            if (col && col.references && col.references.model === tableName) {
+              depends.push(otherTableName);
+              break;
+            }
+          }
+        }
 
         actions.push({
           actionType: "dropTable",

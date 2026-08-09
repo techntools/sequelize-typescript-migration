@@ -22,7 +22,7 @@ This scans models and its decorators to find changes, and generates migration co
 
 After generation is successful, you can use "migrate" in [Sequelize Migration Manual](https://sequelize.org/docs/v6/other-topics/migrations/)
 
-Sometimes, undo(down) action may not work, then you should modify manually. Maybe it's because of ordering of relations of models. That issue is currently in the works.
+| Sometimes the undo (down) command sequence could be reordered when foreign-key chains exist. The generator produces a topological drop order (children before parents) by recording incoming references per dropped table, and applies Kahn's topological sort across all action types. If a custom migration still fails to roll back, inspect the generated `down` block; the actions summary in the header lists the planned order. |
 
 ## Tested with
 
