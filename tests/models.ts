@@ -204,12 +204,30 @@ export class Car extends Model {
   indexes: [
     {
       fields: ['story'],
-      type: 'FULLTEXT',  // mysql only
-      parser: 'ngram'
+      type: 'FULLTEXT',  // MySQL/MariaDB only
+      parser: 'ngram'    // MySQL only, not for MariaDB
     }
   ]
 })
 export class CarWithStory extends Model {
+  @Column(DataType.STRING)
+  declare name: string;
+
+  @Column({
+    type: DataType.TEXT
+  })
+  declare story: string;
+}
+
+@Table({
+  indexes: [
+    {
+      fields: ['story'],
+      type: 'FULLTEXT',
+    }
+  ]
+})
+export class CarWithCarriage extends Model {
   @Column(DataType.STRING)
   declare name: string;
 

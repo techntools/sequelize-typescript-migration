@@ -11,6 +11,15 @@ export = {
     port: 3306
   },
 
+  mariadb: {
+    username: 'santosh',
+    password: 'Sant0sh',
+    database: TEST_DATABASE,
+    dialect: 'mariadb',
+    host: 'localhost',
+    port: 3307
+  },
+
   postgres: {
     username: 'santosh',
     password: 'Sant0sh',

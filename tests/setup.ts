@@ -21,11 +21,21 @@ export async function setupDatabase(dialect: string, models?: ModelCtor[]) {
   if (dialect == 'mysql') {
     sequelize = new Sequelize({ ...config.mysql, database: undefined, dialect })
 
-    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`).catch(err => { console.error(err) })
     await sequelize.query(`USE ${database}`)
     await sequelize.close()
 
     sequelize = new Sequelize({ ...config.mysql, database, dialect })
+  }
+
+  if (dialect == 'mariadb') {
+    sequelize = new Sequelize({ ...config.mariadb, database: undefined, dialect })
+
+    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`).catch(err => { console.error(err) })
+    await sequelize.query(`USE ${database}`)
+    await sequelize.close()
+
+    sequelize = new Sequelize({ ...config.mariadb, database, dialect })
   }
 
   if (dialect == 'postgres') {
@@ -58,6 +68,10 @@ export async function cleanupDatabases(dialect: string) {
     sequelize = new Sequelize({ ...config.mysql, database: undefined, dialect })
   }
 
+  if (dialect == 'mariadb') {
+    sequelize = new Sequelize({ ...config.mariadb, database: undefined, dialect })
+  }
+
   if (dialect == 'postgres') {
     sequelize = new Sequelize({ ...config.postgres, dialect, database: 'postgres' })
   }
@@ -67,7 +81,7 @@ export async function cleanupDatabases(dialect: string) {
     await sequelize.query(`DROP DATABASE IF EXISTS ${seq.config.database}`)
   }))
 
-  await sequelize!.close()
+  await sequelize!?.close()
 }
 
 let logSpy: jest.SpyInstance

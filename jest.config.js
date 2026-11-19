@@ -10,6 +10,6 @@ module.exports = {
   collectCoverageFrom: [
     "src/**/*"
   ],
-  testMatch: ["<rootDir>/test/**/*.test.ts"],
+  testMatch: ["<rootDir>/tests/**/*.test.ts"],
   testTimeout: 60000,
 };
