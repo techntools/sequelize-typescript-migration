@@ -25,7 +25,7 @@
     "packlist": "npx npm-packlist",
     "lint": "eslint --ext .ts .",
     "test": "jest --detectOpenHandles --coverage",
-    "test:watch": "jest --watch",
+    "test:watch": "jest --detectOpenHandles --watch",
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand --no-colors --verbose --watch --coverage false",
     "compile": "tsc --watch"
   },
@@ -64,6 +64,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.0.0",
     "jest": "^30.2.0",
+    "mariadb": "^3.5.5",
     "prettier": "^2.7.1",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
