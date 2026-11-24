@@ -1,6 +1,6 @@
 {
   "name": "@techntools/sequelize-typescript-migration",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Migration tool for Sequelize & TypeScript users",
   "keywords": [
     "sequelize",
@@ -29,6 +29,9 @@
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand --no-colors --verbose --watch --coverage false",
     "compile": "tsc --watch"
   },
+  "files": [
+    "dist"
+  ],
   "bin": {
     "sequelize-typescript-migration": "dist/index.js"
   },
