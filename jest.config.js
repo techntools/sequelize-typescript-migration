@@ -12,4 +12,10 @@ module.exports = {
   ],
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   testTimeout: 60000,
+  watchPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "<rootDir>/tests/migrations/",
+    "\\.md$",
+    "\\.json$"
+  ],
 };
