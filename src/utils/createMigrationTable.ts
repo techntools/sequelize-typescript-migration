@@ -6,6 +6,13 @@ import {
 export default async function createMigrationTable(sequelize: Sequelize) {
   const queryInterface = sequelize.getQueryInterface();
 
+  let defaultValue: ReturnType<typeof Sequelize.fn | typeof Sequelize.literal>
+
+  if (sequelize.getDialect() === 'sqlite')
+    defaultValue = Sequelize.literal('CURRENT_TIMESTAMP')
+  else
+    defaultValue = Sequelize.fn('now')
+
   await queryInterface.createTable("SequelizeMeta", {
     name: {
       type: SequelizeTypescriptDataType.STRING,
@@ -15,7 +22,7 @@ export default async function createMigrationTable(sequelize: Sequelize) {
     },
     date: {
       type: SequelizeTypescriptDataType.DATE,
-      defaultValue: Sequelize.fn("now"),
+      defaultValue,
     },
   });
 
@@ -36,7 +43,7 @@ export default async function createMigrationTable(sequelize: Sequelize) {
     },
     date: {
       type: SequelizeTypescriptDataType.DATE,
-      defaultValue: Sequelize.fn("now"),
+      defaultValue,
     },
   });
 }
