@@ -104,26 +104,24 @@ const propertyToStr = (obj) => {
     }
 
     if (k === "defaultValue") {
-      if (obj[k].internal) {
-        values.push(`"defaultValue": ${obj[k].value}`);
+      if (obj[k] !== null) {
+        if (obj[k].internal) {
+          values.push(`"defaultValue": ${obj[k].value}`);
 
-        continue;
+          continue;
+        }
+
+        if (obj[k].notSupported) continue;
       }
 
-      if (obj[k].notSupported) continue;
-
-      const x = {};
-
-      x[k] = obj[k];
+      const x = { [k]: obj[k] };
       const value = JSON.stringify(x).slice(1, -1);
       values.push(value);
 
       continue;
     }
 
-    const x = {};
-
-    x[k] = obj[k];
+    const x = { [k]: obj[k] };
     values.push(JSON.stringify(x).slice(1, -1));
   }
 

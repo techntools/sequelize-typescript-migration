@@ -1,5 +1,7 @@
+import path from 'path'
 import { mkdir, rm } from 'fs/promises'
 
+import { QueryTypes } from 'sequelize'
 import { Sequelize, ModelCtor } from 'sequelize-typescript'
 
 import randomName from '@scaleway/random-name'
@@ -53,6 +55,13 @@ export async function setupDatabase(dialect: string, models?: ModelCtor[]) {
     await sequelize.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
   }
 
+  if (dialect == 'sqlite') {
+    sequelize = new Sequelize({
+      storage: path.resolve(process.cwd(), `tests/sqlite/${database}.sqlite`),
+      dialect
+    })
+  }
+
   databases.push(sequelize!)
 
   if (models)
@@ -77,6 +86,15 @@ export async function cleanupDatabases(dialect: string) {
   }
 
   await Promise.all(databases.map(async (seq) => {
+    if (seq.getDialect() === 'sqlite') {
+      const databases = await seq.query<{ file: string }>(
+        'PRAGMA database_list',
+        { type: QueryTypes.SELECT }
+      )
+
+      return rm(databases[0].file)
+    }
+
     await seq.close()
     await sequelize.query(`DROP DATABASE IF EXISTS ${seq.config.database}`)
   }))

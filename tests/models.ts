@@ -164,6 +164,19 @@ export class CarBrandIsCertifiedDefaultRemoved extends CarBrand {
 @Table({
   tableName: 'CarBrands'
 })
+export class CarBrandIsCertifiedDefaultNulled extends CarBrand {
+  /*
+   * For sqlite, need to set defaultValue to null to drop it from column schema.
+   * Only dropping from the model did not work.
+   */
+  @Default(null)
+  @Column(DataType.BOOLEAN)
+  declare isCertified: boolean;
+}
+
+@Table({
+  tableName: 'CarBrands'
+})
 export class CarBrandWithoutModification extends CarBrand {
   @Column(DataType.INTEGER)
   declare carsCount: number;
