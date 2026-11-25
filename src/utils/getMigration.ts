@@ -1,7 +1,12 @@
-export default function getMigration(actions) {
+export default function getMigration(actions, options) {
   const commandsUp: string[] = [];
   const commandsDown: string[] = [];
   const consoleOut: string[] = [];
+
+  const opts = [
+    `logging: ${options.debug ? 'console.debug' : 'undefined' }`
+  ]
+  const optStr = `{ ${opts.join(',')} }`
 
   for (const i in actions) {
     const action = actions[i];
@@ -13,7 +18,8 @@ export default function getMigration(actions) {
         params: [
           "${action.tableName}",
           ${getAttributes(action.attributes)},
-          ${JSON.stringify(action.options)}
+          ${JSON.stringify(action.options)},
+          ${optStr}
         ]
       }`;
       commandsUp.push(res);
@@ -31,7 +37,8 @@ export default function getMigration(actions) {
         params: [
           "${action.tableName}",
           "${action.attributeName}",
-          ${propertyToStr(action.options)}
+          ${propertyToStr(action.options)},
+          ${optStr}
         ]
       }`;
       commandsUp.push(res);
@@ -41,7 +48,11 @@ export default function getMigration(actions) {
       const res = `
       {
         fn: "removeColumn",
-        params: ["${action.tableName}", "${action.columnName}"]
+        params: [
+          "${action.tableName}",
+          "${action.columnName}",
+          ${optStr}
+        ]
       }`;
       commandsUp.push(res);
 
@@ -53,7 +64,8 @@ export default function getMigration(actions) {
         params: [
           "${action.tableName}",
           "${action.attributeName}",
-          ${propertyToStr(action.options)}
+          ${propertyToStr(action.options)},
+          ${optStr}
         ]
       }`;
       commandsUp.push(res);
@@ -66,7 +78,8 @@ export default function getMigration(actions) {
         params: [
           "${action.tableName}",
           ${JSON.stringify(action.fields)},
-          ${JSON.stringify(action.options)}
+          ${JSON.stringify(action.options)},
+          ${optStr}
         ]
       }`;
       commandsUp.push(res);
@@ -81,7 +94,8 @@ export default function getMigration(actions) {
         fn: "removeIndex",
         params: [
           "${action.tableName}",
-          ${nameOrAttrs}
+          ${nameOrAttrs},
+          ${optStr}
         ]
       }`;
       commandsUp.push(res);

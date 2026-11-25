@@ -90,8 +90,8 @@ export class SequelizeTypescriptMigration {
       previousState.tables
     );
 
-    const migration = getMigration(upActions);
-    const tmp = getMigration(downActions);
+    const migration = getMigration(upActions, { debug: options.debug });
+    const tmp = getMigration(downActions, { debug: options.debug });
 
     migration.commandsDown = tmp.commandsUp;
 
