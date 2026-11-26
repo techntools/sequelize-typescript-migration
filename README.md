@@ -22,7 +22,7 @@ This scans models and its decorators to find changes, and generates migration co
 
 After generation is successful, you can use "migrate" in [Sequelize Migration Manual](https://sequelize.org/docs/v6/other-topics/migrations/)
 
-| Sometimes the undo (down) command sequence could be reordered when foreign-key chains exist. The generator produces a topological drop order (children before parents) by recording incoming references per dropped table, and applies Kahn's topological sort across all action types. If a custom migration still fails to roll back, inspect the generated `down` block; the actions summary in the header lists the planned order. |
+**Sometimes the undo (down) command sequence could be reordered when foreign-key chains exist. The generator produces a topological drop order (children before parents) by recording incoming references per dropped table, and applies Kahn's topological sort across all action types. If a custom migration still fails to roll back, inspect the generated `down` block; the actions summary in the header lists the planned order.**
 
 ## Tested with
 
@@ -37,7 +37,7 @@ import { Sequelize } from "sequelize-typescript";
 import { SequelizeTypescriptMigration } from "@techntools/sequelize-typescript-migration";
 
 const sequelize: Sequelize = new Sequelize({
-  // ... options
+  // ...
 });
 
 await SequelizeTypescriptMigration.makeMigration(sequelize, {
@@ -241,12 +241,11 @@ Make sure to have writeMigration in your System under development and that seque
 
 If you change a model and re-run the backend there should be a new file under `db/migrations`, but the database won't update automatically. There are easy but important steps:
 
-1) Rename the file's name as well as the content (Info: name), so that everyone knows what this migration is about
+1) Rename the file's name as well as the content, so that everyone knows what this migration is about
 2) Migrate your database with `sequelize-cli db:migrate`
 3) Re-Serve the backend. You should see no changes.
 4) Test the automatically created file's down function with `sequelize-cli db:migrate:undo`
 5) If there are any troubles, fix the auto-generated file (ordering!)
-6) Run `sequelize-cli db:migrate:undo` and continue your amazing work
 
 ## Demo
 
