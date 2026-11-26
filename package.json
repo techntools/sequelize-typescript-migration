@@ -27,7 +27,7 @@
     "lint": "eslint --ext .ts .",
     "test": "jest --detectOpenHandles --coverage",
     "test:watch": "jest --detectOpenHandles --watch",
-    "test:debug": "node --inspect node_modules/.bin/jest --runInBand --no-colors --verbose --watch --coverage false",
+    "test:debug": "node --inspect node_modules/.bin/jest --runInBand --no-colors --verbose --detectOpenHandles --watch --coverage false",
     "compile": "tsc --watch"
   },
   "files": [
