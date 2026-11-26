@@ -32,17 +32,17 @@ After generation is successful, you can use "migrate" in [Sequelize Migration Ma
 ## Usage Example
 
 ```typescript
-import { join } from 'path'
+import { join } from 'path';
 import { Sequelize } from "sequelize-typescript";
-import { SequelizeTypescriptMigration } from "sequelize-typescript-migration-lts";
+import { SequelizeTypescriptMigration } from "@techntools/sequelize-typescript-migration";
 
 const sequelize: Sequelize = new Sequelize({
-  // .. options
+  // ... options
 });
 
 await SequelizeTypescriptMigration.makeMigration(sequelize, {
-  outDir: join(__dirname, './migrations'),
-  migrationName: "add-awesome-field-in-my-table",
+  outDir: join(__dirname, '../migrations'),
+  migrationName: 'add-awesome-field-in-my-table',
   preview: false,
 });
 ```
@@ -234,7 +234,7 @@ module.exports = {
 };
 ```
 
-Run `npx sequelize db:migrate --to 00000001-noname.js` to apply this
+Run `npx sequelize-cli db:migrate --url "postgres://username:password@localhost:5432/database" --to '00000001-noname.js' --migrations-path='/path/to/migrations'` to apply this
 
 ## Possible Usage Scenario
 Make sure to have writeMigration in your System under development and that sequelize is all set up.
@@ -242,11 +242,15 @@ Make sure to have writeMigration in your System under development and that seque
 If you change a model and re-run the backend there should be a new file under `db/migrations`, but the database won't update automatically. There are easy but important steps:
 
 1) Rename the file's name as well as the content (Info: name), so that everyone knows what this migration is about
-2) Migrate your database with `sequelize db:migrate`
+2) Migrate your database with `sequelize-cli db:migrate`
 3) Re-Serve the backend. You should see no changes.
-4) Test the automatically created file's down function with `sequelize db:migrate:undo`
+4) Test the automatically created file's down function with `sequelize-cli db:migrate:undo`
 5) If there are any troubles, fix the auto-generated file (ordering!)
-6) Run `sequelize db:migrate:undo` and continue your amazing work
+6) Run `sequelize-cli db:migrate:undo` and continue your amazing work
+
+## Demo
+
+Check my [repo](https://github.com/techntools/sequelize-demo-app) for usage of the package. It uses sequelize-typescript.
 
 ## Contributors
 
