@@ -237,9 +237,9 @@ module.exports = {
 Run `npx sequelize-cli db:migrate --url "postgres://username:password@localhost:5432/database" --to '00000001-noname.js' --migrations-path='/path/to/migrations'` to apply this
 
 ## Possible Usage Scenario
-Make sure to have writeMigration in your System under development and that sequelize is all set up.
+Make sure that sequelize is all set up.
 
-If you change a model and re-run the backend there should be a new file under `db/migrations`, but the database won't update automatically. There are easy but important steps:
+If you change a model and re-run the backend there should be a new file under `migrations`, but the database won't update automatically. There are easy but important steps:
 
 1) Rename the file's name as well as the content, so that everyone knows what this migration is about
 2) Migrate your database with `sequelize-cli db:migrate`
